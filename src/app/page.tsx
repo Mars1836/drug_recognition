@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import Image from "next/image";
 
 export default function Home() {
@@ -26,6 +27,11 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [processId, setProcessId] = useState<string | null>(null);
+
+  // Detection type state - using a single state for mutually exclusive options
+  const [detectionType, setDetectionType] = useState<string | undefined>(
+    undefined
+  );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0] || null;
@@ -53,12 +59,17 @@ export default function Home() {
       return;
     }
 
+    if (!detectionType) {
+      setError("Please select a detection type");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      // Using your existing API function
-      const result = await detectDrug(file);
+      // Using your existing API function with the type parameter
+      const result = await detectDrug(file, detectionType);
       setResults(result);
 
       // If the API returns a process ID, save it
@@ -97,6 +108,28 @@ export default function Home() {
                     className="cursor-pointer"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label>Detection Type</Label>
+                <RadioGroup
+                  value={detectionType}
+                  onValueChange={setDetectionType}
+                  className="space-y-2"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="label" id="label" />
+                    <Label htmlFor="label" className="cursor-pointer">
+                      Label Detection
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="packaging" id="packaging" />
+                    <Label htmlFor="packaging" className="cursor-pointer">
+                      Packaging Detection
+                    </Label>
+                  </div>
+                </RadioGroup>
               </div>
 
               {preview && (
@@ -156,7 +189,7 @@ export default function Home() {
   );
 }
 
-async function detectDrug(imageFile: File) {
+async function detectDrug(imageFile: File, type: string) {
   // Đọc file thành base64
   const base64 = await new Promise<string>((resolve) => {
     const reader = new FileReader();
@@ -177,6 +210,7 @@ async function detectDrug(imageFile: File) {
       },
       body: JSON.stringify({
         image: base64,
+        type: type,
       }),
     }
   );
